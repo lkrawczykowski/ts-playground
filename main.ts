@@ -21,11 +21,64 @@ class Service {
     }
 }
 
+export class Attribute {
+    name: String;
+    value: String;
+}
+
 export class Test {
     constructor() {
+
+        var o1 = Observable
+            .interval(1000)
+            .take(1)
+            .map(() => "A");
+
+        var o2 = Observable
+            .interval(2000)
+            .take(1)
+            .map(() => "B");
+
+        var o3 = Observable.merge(o1, o2);
+
+        var tick = Observable
+            .interval(4000)
+            .map(() => "TICK");
+
+        tick.subscribe(result => console.log(result));
+
+        var o4 = Observable
+            .from(tick)
+            .map(() => Observable.merge(o1, o2))
+            .mergeAll();
+
+        o4.subscribe(result => console.log(result));
+    }
+
+    f2() {
+
+        //recover from error:
+        var o1 = Observable.from(["a", "b", "c", "d"])
+            .map(x => {
+                if (x === "b")
+                    throw new Error("b!")
+                else
+                    return x;
+            })
+            .retryWhen(x => Observable.interval(2000))
+
+        var o2 = Observable.interval(1000);
+
+        var o3 = Observable.concat([o2, o2, o2]);
+
+        o1.subscribe(result => console.log(result));
+
+    }
+
+    f3() {
         console.log("Test.constructor");
 
-        var scenario: number = 5;
+        var scenario: number = 6;
 
         if (scenario === 1) {
 
@@ -149,27 +202,64 @@ export class Test {
                 .startWith(null)
                 .map(() => "x");
 
-            Observable
-                .interval(500)
+            var p = Observable
+                .interval(1000)
                 .map(() => Math.random())
-                .scan<any>((acc:Array<number>, v: number, i: number) => {
-                    if(acc.length === 3)
-                        acc = [];
-                    acc.push(v);
-                    return acc;
-                }, new Array<number>())
-                .filter(result => result.length === 3)
-                .subscribe(result => {
-                    console.log(result);
-                    //r.next(result);
-                })
+
+
+            var s = Observable
+                .from(p)
+                .map(x => x > 0.5)
+                .bufferCount(3)
+            /*.scan<any>((acc:Array<number>, v: number, i: number) => {
+                if(acc.length === 3)
+                    acc = [];
+                acc.push(v);
+                return acc;
+            }, new Array<number>())
+            .filter(result => result.length === 3)
+            .subscribe(result => {
+                console.log(result);
+                //r.next(result);
+            });*/
+
+
+            p.subscribe(result => console.log(result));
+
+            s.subscribe(result => console.log(result));
 
             //r.subscribe(result => console.log(result));
 
             //.from()
             //.subscribe(result => console.log(result));
 
+            var cancelable: Observable<any> = Observable
+                .interval(1000)
+                .startWith(null)
+                .map(() => "x");
+
+            var sub = cancelable.subscribe(result => console.log(result))
+            sub.unsubscribe();
+
         }
+    }
+
+    public old1() {
+
+        var stream = Observable.of([1, 1, 1, 2, 3, 4, 5, 9])
+            .flatMap(x => x);
+
+        var s1 = Observable.from(stream)
+            .filter(x => x > 2);
+
+        var s2 = Observable.from(stream)
+            .distinct();
+
+        var s3 = Observable.of([{ 'a': 1 }, { 'a': 1 }, { 'a': 1 }, { 'a': 2 }])
+            .flatMap(x => x)
+            .distinctUntilChanged((x, y) => x === y, x => x['a'])
+
+        s3.subscribe(result => console.log(result));
     }
 
     public getO3(): Observable<any> {
